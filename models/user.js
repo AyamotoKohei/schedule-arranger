@@ -10,11 +10,11 @@ const User = sequelize.define(
         userId: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            allowNull: false // NULLを許可しない
+            allowNull: false // NULLを許容しない
         },
         username: {
             type: DataTypes.STRING,
-            allowNull: false // NULLを許可しない
+            allowNull: false // NULLを許容しない
         }
     },
     {
