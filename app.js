@@ -35,7 +35,8 @@ passport.use(new GitHubStrategy({
 ));
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var loginRouter = require('./routes/login');
+var logoutRouter = require('./routes/logout');
 
 var app = express();
 app.use(helmet());
@@ -60,7 +61,22 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/login', loginRouter);
+app.use('/logout', logoutRouter);
+
+// パスに対するHTTPリクエストのハンドラの登録
+app.get('/auth/github',
+  // GitHubへの認証を行うための処理
+  passport.authenticate('github', { scope: ['user:email'] }), // スコープをuser:emailとして、認証を行う
+  function (req, res) {} // リクエストが行われた際の処理
+);
+
+// GitHubが利用者の許可に対する問い合わせの結果を送るパスのハンドラを登録
+app.get('/auth/github/callback',
+  // 認証が失敗した際には、再度ログインを促す
+  passport.authenticate('github', { failureRedirect: '/login' }),
+  function (req, res) { res.redirect('/'); }
+);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
