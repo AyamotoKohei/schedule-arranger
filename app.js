@@ -7,6 +7,34 @@ var helmet = require('helmet');
 var session = require('express-session');
 var passport = require('passport');
 
+// モデルの読み込み
+var User = require('./models/user');
+var Schedule = require('./models/schedule');
+var Availability = require('./models/availability');
+var Candidate = require('./models/candidate');
+var Comment = require('./models/comment');
+
+// データベースのテーブルを作成する関数を呼び出す
+User.sync().then(() => { // テーブル作成後に実行したい処理を記述
+  // 予定がユーザーの従属エンティティであることを定義し、テーブルを作成
+  Schedule.belongsTo(User, {foreignKey: 'createdBy'}); // createdBy が User の外部キーとなるとことを設定
+  Schedule.sync(); // 対応するテーブルを作成
+
+  // コメントがユーザーの従属エンティティであることを定義し、テーブルを作成
+  Comment.belongsTo(User, {foreignKey: 'userId'}); // userId が User の外部キーとなるとことを設定
+  Comment.sync(); // 対応するテーブルを作成
+
+  // 出欠がユーザーの従属エンティティであることを定義し、テーブルを作成
+  Availability.belongsTo(User, {foreignKey: 'userId'}); // userId が User の外部キーとなるとことを設定
+
+  // 候補日程に対応するテーブルを作成
+  Candidate.sync().then(() => { // テーブル作成後に実行したい処理を記述
+    // 出欠が候補日程の従属エンティティであることを定義し、テーブルを作成
+    Availability.belongsTo(Candidate, {foreignKey: 'candidateId'}); // candidateId が Candidate の外部キーとなるとことを設定
+    Availability.sync(); // 対応するテーブルを作成
+  });
+});
+
 var GitHubStrategy = require('passport-github2');
 var GITHUB_CLIENT_ID = '5919177f06dbbce8a82e';
 var GITHUB_CLIENT_SECRET = 'ed49b06b9f92a442b1d75fa30ac41b922733a6f0';
@@ -28,8 +56,15 @@ passport.use(new GitHubStrategy({
   callbackURL: 'http://localhost:8000/auth/github/callback'
 },
   function (accessToken, refreshToken, profile, done) {
+    // GitHub 認証が実行された際に呼び出される処理
     process.nextTick(function () {
-      return done(null, profile)
+      // 取得されたユーザーIDとユーザー名を User のテーブルに保存
+      User.upsert({ // INSERT または UPDATE を行う
+        userId: profile.id,
+        username: profile.username
+      }).then(() => {
+        done(null, profile);
+      });
     });
   }
 ));
