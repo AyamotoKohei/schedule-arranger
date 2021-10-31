@@ -2,20 +2,25 @@
 const {sequelize, DataTypes} = require('./sequelize-loader');
 
 /**
- * 候補日程のデータモデルの定義
+ * 出欠のデータモデルの定義
  */
-const Candidate = sequelize.define(
-    'candidates',
+const Availability = sequelize.define(
+    'availabilites',
     {
-        candidateId:{
+        candiateId: { // 主キーとして設定
             type: DataTypes.INTEGER,
             primaryKey: true,
-            autoIncrement: true,
             allowNull: false // NULLを許容しない
         },
-        canditateName:{
+        userId: { // 主キーとして設定
             type: DataTypes.INTEGER,
+            primaryKey: true,
             allowNull: false // NULLを許容しない
+        },
+        availability: {
+            type: DataTypes.INTEGER,
+            allowNull: false, // NULLを許容しない
+            defaultValue: 0
         },
         scheduleId: {
             type: DataTypes.UUID,
@@ -33,4 +38,4 @@ const Candidate = sequelize.define(
     }
 );
 
-module.exports = Candidate;
+module.exports = Availability;

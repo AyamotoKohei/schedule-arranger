@@ -1,6 +1,9 @@
 'use strict';
 const {sequelize, DataTypes} = require('./sequelize-loader');
 
+/**
+ * 予定のデータモデルの定義
+ */
 const Schedule = sequelize.define(
     'schedules',
     {
