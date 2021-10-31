@@ -7,14 +7,14 @@ const {sequelize, DataTypes} = require('./sequelize-loader');
 const Candidate = sequelize.define(
     'candidates',
     {
-        candidateId:{
+        candidateId: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true,
             allowNull: false // NULLを許容しない
         },
-        canditateName:{
-            type: DataTypes.INTEGER,
+        canditateName: {
+            type: DataTypes.STRING,
             allowNull: false // NULLを許容しない
         },
         scheduleId: {
