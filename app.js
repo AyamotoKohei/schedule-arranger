@@ -35,7 +35,7 @@ User.sync().then(() => { // テーブル作成後に実行したい処理を記�
   });
 });
 
-var GitHubStrategy = require('passport-github2');
+var GitHubStrategy = require('passport-github2').Strategy;
 var GITHUB_CLIENT_ID = '5919177f06dbbce8a82e';
 var GITHUB_CLIENT_SECRET = 'ed49b06b9f92a442b1d75fa30ac41b922733a6f0';
 
