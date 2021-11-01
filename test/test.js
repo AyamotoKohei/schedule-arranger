@@ -4,6 +4,8 @@
 const request = require('supertest');
 const passportStub = require('passport-stub');
 const app = require('../app');
+const Candidate = require('../models/candidate');
+const Schedule = require('../models/schedule');
 
 // 以下の内容のテストを行う
 // ・レスポンスヘッダの 'Content-Type' が text/html; charset=utf-8 であること
@@ -48,5 +50,71 @@ describe('/logout', () => {
             .get('/logout')
             .expect('Location', '/')
             .expect(302);
+    });
+});
+
+// 予定が作成でき、表示されることをテストする
+describe('/schedules', () => {
+    // describe 内のテスト前に実行される関数
+    beforeAll(() => {
+        passportStub.install(app);
+        passportStub.login({ id: 0, username: 'testuser' });
+    });
+
+    // describe 内のテスト後に実行される関数
+    afterAll(() => {
+        passportStub.logout();
+        passportStub.uninstall(app);
+    });
+    
+    test('予定が作成でき、表示される', done => {
+        User.upsert({ userId: 0, username: 'testuser' }).then(() => {
+            request(app)
+                .post('/schedules')
+                // 予定と候補を作成
+                .send({
+                    scheduleName: 'テスト予定1',
+                    memo: 'テストメモ1\r\nテストメモ2',
+                    candidates: 'テスト候補1\r\nテスト候補2\r\nテスト候補3'
+                })
+                .expect('Location', /schedules/)
+                .expect(302)
+                .end((err, res) => {
+                    // リダイレクトされることを検証
+                    const createdSchedulePath = res.headers.location;
+                    request(app)
+                        .get(createdSchedulePath)
+                        // 作成された予定と候補が表示されていることをテストする
+                        .expect(/テスト予定/)
+                        .expect(/テストメモ1/)
+                        .expect(/テストメモ2/)
+                        .expect(/テスト候補1/)
+                        .expect(/テスト候補2/)
+                        .expect(/テスト候補3/)
+                        .expect(200)
+                        .end((err, res) => {
+                            if (err) return done(err);
+                            // テストで作成したデータを削除
+                            const scheduleId = createdSchedulePath.split('/schedules/')[1];
+                            Candidate.findAll({
+                                where: { scheduleId: scheduleId }
+                            }).then(candidates => {
+                                const promises = candidates.map(c => {
+                                    return c.destroy();
+                                });
+                                // 配列で渡された全ての Promise が終了した際に結果を返す Promise オブジェクトの作成
+                                Promise.all(promises).then(() => {
+                                    // モデルに対応するデータを主キーによって一行だけ取得
+                                    Schedule.findByPk(scheduleId).then(s => {
+                                        s.destroy().then(() => {
+                                            if (err) return done(err);
+                                            done();
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                });
+        });
     });
 });

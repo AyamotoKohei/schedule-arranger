@@ -5,7 +5,7 @@ const router = express.Router();
 const Schedule = require('../models/schedule');
 
 /* GET home page. */
-router.get('/', function (req, res, next) {
+router.get('/', function(req, res, next) {
   const title = '予定調整くん';
   // 処理全体を認証済みかで振り分ける
   if (req.user) {

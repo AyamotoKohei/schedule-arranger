@@ -36,8 +36,8 @@ User.sync().then(() => { // テーブル作成後に実行したい処理を記�
 });
 
 var GitHubStrategy = require('passport-github2').Strategy;
-var GITHUB_CLIENT_ID = '5919177f06dbbce8a82e';
-var GITHUB_CLIENT_SECRET = 'ed49b06b9f92a442b1d75fa30ac41b922733a6f0';
+var GITHUB_CLIENT_ID = '2f831cb3d4aac02393aa';
+var GITHUB_CLIENT_SECRET = '9fbc340ac0175123695d2dedfbdf5a78df3b8067';
 
 // 認証されたユーザー情報の保存
 passport.serializeUser(function (user, done) {

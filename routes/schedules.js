@@ -37,7 +37,7 @@ router.post('/', authenticationEnsurer, (req, res, next) => {
         // sequelize の複数のオブジェクトを保存する関数を利用して保存する
         Candidate.bulkCreate(candidates).then(() => {
             // /schedules/:scheduleId にリダイレクトされる処理
-            res.redirect(`/schedules/${schedule.scheduleId}`);
+            res.redirect('/schedules/' + schedule.scheduleId);
         });
     });
 });
