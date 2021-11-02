@@ -87,10 +87,11 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
                 // 閲覧ユーザーと出欠に紐づくユーザーからユーザー Map（キー:ユーザーID, 値:ユーザー）を作る 
                 const userMap = new Map(); // key: userId, value: User
                 userMap.set(parseInt(req.userId), {
-                    isSelf: true,
+                    isSelf: true, // 閲覧ユーザーであるか
                     userId: parseInt(req.userId),
                     username: req.user.username
                 });
+                // 出欠のデータを1つでも持っていたユーザーをユーザーMapに含める
                 availabilies.forEach((a) => {
                     userMap.set(a.user.userId, {
                         isSelf: parseInt(req.user.id) === a.user.userId, // 閲覧ユーザー自身であるかを含める
