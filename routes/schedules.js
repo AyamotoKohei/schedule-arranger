@@ -7,6 +7,7 @@ const uuid = require('uuid');
 const Schedule = require('../models/schedule'); // 保存する予定のモデル
 const Candidate = require('../models/candidate'); // 候補のモデル
 const User = require('../models/user'); // ユーザーのモデル
+const Availability = require('../models/availability'); // 出欠のモデル
 
 router.get('/new', authenticationEnsurer, (req, res, next) => {
     res.render('new', { user: req.user });
@@ -62,12 +63,34 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
                 where: { scheduleId: schedule.scheduleId },
                 order: [['candidateId', 'ASC']] // 候補IDの昇順（作られた順）
             }).then((candidates) => {
+                // データベースからその予定の全ての出欠を取得
+                Availability.findAll({
+                    include: [
+                        {
+                            // ユーザー名をテーブルを結合して取得
+                            model: User,
+                            attributes: ['userId', 'username']
+                        }
+                    ],
+                    where: { scheduleId: schedule.scheduleId }, 
+                    order: [[User, 'username', 'ASC'], ['candidateId', 'ASC']] // ユーザー名の昇順、候補IDの昇順
+                }).then((availabilies) => {
+                    // 出欠 MapMap(キー:ユーザー ID, 値:出欠Map(キー:候補 ID, 値:出欠))を作成
+                    const availabilityMapMap = new Map(); // key: userId, value: Map(key: candidateId, availability)
+                    const map = availabilityMapMap.get(a.user.userId) || new Map();
+                    map.set(a.candidateId, a.availability);
+                    availabilityMapMap.set(a.user.userId, map);
+                });
+
+                console.log(availabilityMapMap);
+
                 // テンプレートに必要な変数を設定して、テンプレートを描画
                 res.render('schedule', {
                     user: req.user,
                     schedule: schedule,
                     candidates: candidates,
-                    users: [req.user]
+                    users: [req.user],
+                    availabilityMapMap: availabilityMapMap
                 });
             });
         } else {
