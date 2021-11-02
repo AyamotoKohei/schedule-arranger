@@ -30,10 +30,12 @@ router.post('/', authenticationEnsurer, (req, res, next) => {
         const candidateNames = req.body.candidates.trim().split('\n').map((s) => s.trim()).filter((s) => s !== "");
         
         // 保存すべき候補のオブジェクトの作成
-        const candidates = candidateNames.map((c) => { return {
-            candidateName: c,
-            scheduleId: schedule.scheduleId
-        }; });
+        const candidates = candidateNames.map((c) => {
+            return {
+                candidateName: c,
+                scheduleId: schedule.scheduleId
+            }; 
+        });
 
         // sequelize の複数のオブジェクトを保存する関数を利用して保存する
         Candidate.bulkCreate(candidates).then(() => {
