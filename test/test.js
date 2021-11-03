@@ -2,6 +2,7 @@
 
 // supertest, passport-stubの読み込みと、テスト対象の読み込み
 const request = require('supertest');
+const assert = require('assert');
 const passportStub = require('passport-stub');
 const app = require('../app');
 const Candidate = require('../models/candidate');
@@ -134,7 +135,15 @@ describe('/schedules/:scheduleId/users/:userId/candidayes/:candidateId', () => {
                             .post(`/schedules/${scheduleId}/users/${userId}/candidates/${candidate.candidateId}`)
                             .send({ availability: 2 }) // 出席に更新
                             .expect('{"status":"OK", "availability":2}') // 含まれているかどうかをテスト
-                            .end((err, res) => { deleteScheduleAggregate(scheduleId, done, err); });
+                            .end((err, res) => { 
+                                Availability.findAll({
+                                    where: { scheduleId: scheduleId }
+                                }).then((availabilities) => {
+                                    assert.strictEqual(availabilities.length, 1);
+                                    assert.strictEqual(availabilities[0].availability, 2);
+                                    deleteScheduleAggregate(scheduleId, done, err)
+                                });
+                            });
                     });
                 });
         });
