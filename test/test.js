@@ -3,11 +3,11 @@
 // supertest, passport-stubの読み込みと、テスト対象の読み込み
 const request = require('supertest');
 const assert = require('assert');
-const passportStub = require('passport-stub');
 const app = require('../app');
-const Candidate = require('../models/candidate');
-const Schedule = require('../models/schedule');
+const passportStub = require('passport-stub');
 const User = require('../models/user');
+const Schedule = require('../models/schedule');
+const Candidate = require('../models/candidate');
 const Availability = require('../models/availability');
 
 // 以下の内容のテストを行う
@@ -88,14 +88,14 @@ describe('/schedules', () => {
                     request(app)
                         .get(createdSchedulePath)
                         // 作成された予定と候補が表示されていることをテストする
-                        .expect(/テスト予定/)
+                        .expect(/テスト予定1/)
                         .expect(/テストメモ1/)
                         .expect(/テストメモ2/)
                         .expect(/テスト候補1/)
                         .expect(/テスト候補2/)
                         .expect(/テスト候補3/)
                         .expect(200)
-                        .end((err, res) => { deleteScheduleAggregate(createdSchedulePath.split('/schedules/')[1], done, err); });
+                        .end((err, res) => { deleteScheduleAggregate(createdSchedulePath.split('/schedules/')[1], done, err);});
                 });
         });
     });
@@ -107,20 +107,20 @@ describe('/schedules/:scheduleId/users/:userId/candidates/:candidateId', () => {
     beforeAll(() => {
         passportStub.install(app);
         passportStub.login({ id: 0, username: 'testuser' });
-    })
+    });
 
     // describe 内のテスト後に実行される関数
     afterAll(() => {
         passportStub.logout();
         passportStub.uninstall(app);
-    })
+    });
 
     // /schedules に POST を行い予定と候補を作成
     test('出欠が更新できる', (done) => {
         User.upsert({ userId: 0, username: 'testuser' }).then(() => {
             request(app)
                 .post('/schedules')
-                .send({ scheduleName: 'テスト出欠更新予定1', memo: 'テスト出欠更新メモ', candidates: 'テスト出欠更新候補1' })
+                .send({ scheduleName: 'テスト出欠更新予定1', memo: 'テスト出欠更新メモ1', candidates: 'テスト出欠更新候補1' })
                 // テストで作成した予定と、そこに紐づく情報を削除するメソッドを呼び出す
                 .end((err, res) => {
                     const createdSchedulePath = res.headers.location;
@@ -130,17 +130,18 @@ describe('/schedules/:scheduleId/users/:userId/candidates/:candidateId', () => {
                         where: { scheduleId: scheduleId }
                     }).then((candidate) => {
                         // 更新されることをテスト
+                        const userId = 0;
                         request(app)
                             .post(`/schedules/${scheduleId}/users/${userId}/candidates/${candidate.candidateId}`)
                             .send({ availability: 2 }) // 出席に更新
-                            .expect('{"status":"OK", "availability":2}') // 含まれているかどうかをテスト
+                            .expect('{"status":"OK","availability":2}') // 含まれているかどうかをテスト
                             .end((err, res) => { 
                                 Availability.findAll({
                                     where: { scheduleId: scheduleId }
                                 }).then((availabilities) => {
                                     assert.strictEqual(availabilities.length, 1);
                                     assert.strictEqual(availabilities[0].availability, 2);
-                                    deleteScheduleAggregate(scheduleId, done, err)
+                                    deleteScheduleAggregate(scheduleId, done, err);
                                 });
                             });
                     });
@@ -168,7 +169,7 @@ function deleteScheduleAggregate(scheduleId, done, err) {
                 where: { scheduleId: scheduleId }
             }).then((candidates) => {
                 // 全ての候補情報を削除し、その結果の配列を取得
-                const promises = candidates.map((c) => { return c.destroy() });
+                const promises = candidates.map((c) => { return c.destroy(); });
                 Promise.all(promises).then(() => {
                     // 全ての予定情報を取得
                     Schedule.findByPk(scheduleId).then((s) => {

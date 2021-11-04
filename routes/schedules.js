@@ -76,10 +76,10 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
                     ],
                     where: { scheduleId: schedule.scheduleId },
                     order: [[User, 'username', 'ASC'], ['candidateId', 'ASC']] // ユーザー名の昇順、候補IDの昇順
-                }).then((availabilies) => {
+                }).then((availabilities) => {
                     // 出欠 MapMap(キー:ユーザー ID, 値:出欠Map(キー:候補 ID, 値:出欠))を作成
                     const availabilityMapMap = new Map(); // key: userId, value: Map(key: candidateId, availability)
-                    availabilies.forEach((a) => {
+                    availabilities.forEach((a) => {
                         const map = availabilityMapMap.get(a.user.userId) || new Map();
                         map.set(a.candidateId, a.availability);
                         availabilityMapMap.set(a.user.userId, map);
@@ -87,14 +87,14 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
 
                     // 閲覧ユーザーと出欠に紐づくユーザーからユーザー Map（キー:ユーザーID, 値:ユーザー）を作る 
                     const userMap = new Map(); // key: userId, value: User
-                    userMap.set(parseInt(req.userId), {
+                    userMap.set(parseInt(req.user.id), {
                         isSelf: true, // 閲覧ユーザーであるか
-                        userId: parseInt(req.userId),
+                        userId: parseInt(req.user.id),
                         username: req.user.username
                     });
 
                     // 出欠のデータを1つでも持っていたユーザーをユーザーMapに含める
-                    availabilies.forEach((a) => {
+                    availabilities.forEach((a) => {
                         userMap.set(a.user.userId, {
                             isSelf: parseInt(req.user.id) === a.user.userId, // 閲覧ユーザー自身であるかを含める
                             userId: a.user.userId,
@@ -107,7 +107,7 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
                     users.forEach((u) => {
                         candidates.forEach((c) => {
                             const map = availabilityMapMap.get(u.userId) || new Map();
-                            const a = map.get(c.candidateId) || 0; // デフォルト値は0を利用
+                            const a = map.get(c.candidateId) || 0; // デフォルト値は 0 を利用
                             map.set(c.candidateId, a);
                             availabilityMapMap.set(u.userId, map);
                         });

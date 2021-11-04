@@ -73,7 +73,7 @@ var indexRouter = require('./routes/index');
 var loginRouter = require('./routes/login');
 var logoutRouter = require('./routes/logout');
 var schedulesRouter = require('./routes/schedules');
-var availabiliesRouter = require('./routes/availabilities');
+var availabilitiesRouter = require('./routes/availabilities');
 
 var app = express();
 app.use(helmet());
@@ -101,7 +101,7 @@ app.use('/', indexRouter);
 app.use('/login', loginRouter);
 app.use('/logout', logoutRouter);
 app.use('/schedules', schedulesRouter);
-app.use('/schedules', availabiliesRouter);
+app.use('/schedules', availabilitiesRouter);
 
 // パスに対するHTTPリクエストのハンドラの登録
 app.get('/auth/github',

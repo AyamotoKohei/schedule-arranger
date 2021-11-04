@@ -7,7 +7,7 @@ const {sequelize, DataTypes} = require('./sequelize-loader');
 const Availability = sequelize.define(
     'availabilites',
     {
-        candiateId: { // 主キーとして設定
+        candidateId: { // 主キーとして設定
             type: DataTypes.INTEGER,
             primaryKey: true,
             allowNull: false // NULLを許容しない
