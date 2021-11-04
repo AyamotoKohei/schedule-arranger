@@ -96,14 +96,13 @@ describe('/schedules', () => {
                         .expect(/テスト候補3/)
                         .expect(200)
                         .end((err, res) => { deleteScheduleAggregate(createdSchedulePath.split('/schedules/')[1], done, err); });
-
                 });
         });
     });
 });
 
 // 出欠が更新できるかをテストする
-describe('/schedules/:scheduleId/users/:userId/candidayes/:candidateId', () => {
+describe('/schedules/:scheduleId/users/:userId/candidates/:candidateId', () => {
     // describe 内のテスト前に実行される関数
     beforeAll(() => {
         passportStub.install(app);
@@ -129,7 +128,7 @@ describe('/schedules/:scheduleId/users/:userId/candidayes/:candidateId', () => {
                     // 予定に関連する候補を取得し、その候補に対してPOSTでWebAPIに対して欠席を出席に更新する
                     Candidate.findOne({
                         where: { scheduleId: scheduleId }
-                    }).then((candidates) => {
+                    }).then((candidate) => {
                         // 更新されることをテスト
                         request(app)
                             .post(`/schedules/${scheduleId}/users/${userId}/candidates/${candidate.candidateId}`)
