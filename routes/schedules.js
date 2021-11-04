@@ -8,6 +8,7 @@ const Schedule = require('../models/schedule'); // 保存する予定のモデ�
 const Candidate = require('../models/candidate'); // 候補のモデル
 const User = require('../models/user'); // ユーザーのモデル
 const Availability = require('../models/availability'); // 出欠のモデル
+const Comment = require('../models/comment'); // コメントのモデル
 
 router.get('/new', authenticationEnsurer, (req, res, next) => {
     res.render('new', { user: req.user });
@@ -113,13 +114,23 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
                         });
                     });
 
-                    // テンプレートに必要な変数を設定して、テンプレートを描画
-                    res.render('schedule', {
-                        user: req.user,
-                        schedule: schedule,
-                        candidates: candidates,
-                        users: users,
-                        availabilityMapMap: availabilityMapMap
+                    // コメント取得
+                    Comment.findAll({
+                        where: { scheduleId: schedule.scheduleId }
+                    }).then((comments) => {
+                        const commentMap = new Map() // key: userId, value: comment
+                        comments.forEach((comment) => {
+                            commentMap.set(comment.userId, comment.comment);
+                        });
+                        // テンプレートに必要な変数を設定して、テンプレートを描画
+                        res.render('schedule', {
+                            user: req.user,
+                            schedule: schedule,
+                            candidates: candidates,
+                            users: users,
+                            availabilityMapMap: availabilityMapMap,
+                            commentMap: commentMap
+                        });
                     });
                 });
             });
