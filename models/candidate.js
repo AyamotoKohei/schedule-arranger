@@ -13,7 +13,7 @@ const Candidate = sequelize.define(
             autoIncrement: true,
             allowNull: false // NULLを許容しない
         },
-        canditateName: {
+        candidateName: {
             type: DataTypes.STRING,
             allowNull: false // NULLを許容しない
         },

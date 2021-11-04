@@ -28,13 +28,13 @@ router.post('/', authenticationEnsurer, (req, res, next) => {
     }).then((schedule) => { // 予定を保存し終わったら実行される関数
         // 候補日程の配列を取得
         const candidateNames = req.body.candidates.trim().split('\n').map((s) => s.trim()).filter((s) => s !== "");
-        
+
         // 保存すべき候補のオブジェクトの作成
         const candidates = candidateNames.map((c) => {
             return {
                 candidateName: c,
                 scheduleId: schedule.scheduleId
-            }; 
+            };
         });
 
         // sequelize の複数のオブジェクトを保存する関数を利用して保存する
@@ -58,7 +58,7 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
             scheduleId: req.params.scheduleId
         },
         order: [['updatedAt', 'DESC']] // 予定の更新日時の降順
-    }).then((schedule) => { 
+    }).then((schedule) => {
         // 予定が見つかった場合に、その候補一覧を取得
         if (schedule) {
             Candidate.findAll({
@@ -74,7 +74,7 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
                             attributes: ['userId', 'username']
                         }
                     ],
-                    where: { scheduleId: schedule.scheduleId }, 
+                    where: { scheduleId: schedule.scheduleId },
                     order: [[User, 'username', 'ASC'], ['candidateId', 'ASC']] // ユーザー名の昇順、候補IDの昇順
                 }).then((availabilies) => {
                     // 出欠 MapMap(キー:ユーザー ID, 値:出欠Map(キー:候補 ID, 値:出欠))を作成
@@ -83,43 +83,44 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
                         const map = availabilityMapMap.get(a.user.userId) || new Map();
                         map.set(a.candidateId, a.availability);
                         availabilityMapMap.set(a.user.userId, map);
-                    })
-                });
-
-                // 閲覧ユーザーと出欠に紐づくユーザーからユーザー Map（キー:ユーザーID, 値:ユーザー）を作る 
-                const userMap = new Map(); // key: userId, value: User
-                userMap.set(parseInt(req.userId), {
-                    isSelf: true, // 閲覧ユーザーであるか
-                    userId: parseInt(req.userId),
-                    username: req.user.username
-                });
-                // 出欠のデータを1つでも持っていたユーザーをユーザーMapに含める
-                availabilies.forEach((a) => {
-                    userMap.set(a.user.userId, {
-                        isSelf: parseInt(req.user.id) === a.user.userId, // 閲覧ユーザー自身であるかを含める
-                        userId: a.user.userId,
-                        username: a.user.username
                     });
-                });
 
-                // 全ユーザー、全候補で二重ループしてそれぞれの出欠の値がない場合には、「欠席」を設定する
-                const users = Array.from(userMap).map((keyValue) => keyValue[1]);
-                users.forEach((u) => {
-                    candidates.forEach((c) => {
-                        const map =availabilityMapMap.get(u.userId) || new Map();
-                        const a = map.get(c.candidateId) || 0; // デフォルト値は0を利用
-                        map.set(c.candidateId, a);
-                        availabilityMapMap.set(u.userId, map);
+                    // 閲覧ユーザーと出欠に紐づくユーザーからユーザー Map（キー:ユーザーID, 値:ユーザー）を作る 
+                    const userMap = new Map(); // key: userId, value: User
+                    userMap.set(parseInt(req.userId), {
+                        isSelf: true, // 閲覧ユーザーであるか
+                        userId: parseInt(req.userId),
+                        username: req.user.username
                     });
-                });
 
-                // テンプレートに必要な変数を設定して、テンプレートを描画
-                res.render('schedule', {
-                    user: req.user,
-                    schedule: schedule,
-                    candidates: candidates,
-                    users: users,
-                    availabilityMapMap: availabilityMapMap
+                    // 出欠のデータを1つでも持っていたユーザーをユーザーMapに含める
+                    availabilies.forEach((a) => {
+                        userMap.set(a.user.userId, {
+                            isSelf: parseInt(req.user.id) === a.user.userId, // 閲覧ユーザー自身であるかを含める
+                            userId: a.user.userId,
+                            username: a.user.username
+                        });
+                    });
+
+                    // 全ユーザー、全候補で二重ループしてそれぞれの出欠の値がない場合には、「欠席」を設定する
+                    const users = Array.from(userMap).map((keyValue) => keyValue[1]);
+                    users.forEach((u) => {
+                        candidates.forEach((c) => {
+                            const map = availabilityMapMap.get(u.userId) || new Map();
+                            const a = map.get(c.candidateId) || 0; // デフォルト値は0を利用
+                            map.set(c.candidateId, a);
+                            availabilityMapMap.set(u.userId, map);
+                        });
+                    });
+
+                    // テンプレートに必要な変数を設定して、テンプレートを描画
+                    res.render('schedule', {
+                        user: req.user,
+                        schedule: schedule,
+                        candidates: candidates,
+                        users: users,
+                        availabilityMapMap: availabilityMapMap
+                    });
                 });
             });
         } else {
