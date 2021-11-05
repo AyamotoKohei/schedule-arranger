@@ -70,7 +70,7 @@ describe('/schedules', () => {
         passportStub.logout();
         passportStub.uninstall(app);
     });
-    
+
     test('予定が作成でき、表示される', done => {
         User.upsert({ userId: 0, username: 'testuser' }).then(() => {
             request(app)
@@ -96,7 +96,7 @@ describe('/schedules', () => {
                         .expect(/テスト候補2/)
                         .expect(/テスト候補3/)
                         .expect(200)
-                        .end((err, res) => { deleteScheduleAggregate(createdSchedulePath.split('/schedules/')[1], done, err);});
+                        .end((err, res) => { deleteScheduleAggregate(createdSchedulePath.split('/schedules/')[1], done, err); });
                 });
         });
     });
@@ -136,7 +136,7 @@ describe('/schedules/:scheduleId/users/:userId/candidates/:candidateId', () => {
                             .post(`/schedules/${scheduleId}/users/${userId}/candidates/${candidate.candidateId}`)
                             .send({ availability: 2 }) // 出席に更新
                             .expect('{"status":"OK","availability":2}') // 含まれているかどうかをテスト
-                            .end((err, res) => { 
+                            .end((err, res) => {
                                 Availability.findAll({
                                     where: { scheduleId: scheduleId }
                                 }).then((availabilities) => {
@@ -208,32 +208,46 @@ function deleteScheduleAggregate(scheduleId, done, err) {
     // 予定に関連するコメントの削除処理
     const promiseCommentDestroy = Comment.findAll({
         where: { scheduleId: scheduleId }
-    }).then((comments) => { comments.map((c) => { return c.destroy(); }); });
+    }).then(comments => {
+        return Promise.all(
+            comments.map(c => { return c.destroy(); })
+        );
+    });
 
     Availability.findAll({
         // 全ての出欠情報を取得
         where: { scheduleId: scheduleId }
-    }).then((availabilities) => {
-        // 全ての出欠情報を削除し、その結果の配列を取得
-        const promises = availabilities.map((a) => { return a.destroy(); });
-        Promise.all(promises).then(() => {
-            Candidate.findAll({
+    })
+        .then((availabilities) => {
+            // 全ての出欠情報を削除し、その結果の配列を取得
+            const promises = availabilities.map(a => {
+                return a.destroy();
+            });
+            return Promise.all(promises);
+        })
+        .then(() => {
+            return Candidate.findAll({
                 // 全ての候補情報を取得
                 where: { scheduleId: scheduleId }
-            }).then((candidates) => {
-                // 全ての候補情報を削除し、その結果の配列を取得
-                const promises = candidates.map((c) => { return c.destroy(); });
-                Promise.all(promises).then(() => {
-                    // 全ての予定情報を取得
-                    Schedule.findByPk(scheduleId).then((s) => {
-                        // 全ての予定情報を削除し、その結果の配列を取得
-                        s.destroy().then(() => {
-                            if (err) return done(err);
-                            done();
-                        });
-                    });
-                });
             });
+        })
+        .then(candidates => {
+            // 全ての候補情報を削除し、その結果の配列を取得
+            const promises = candidates.map(c => {
+                return c.destroy();
+            });
+            promises.push(promiseCommentDestroy);
+            return Promise.all(promises);
+        })
+        .then(() => {
+            // 全ての予定情報を取得
+            return Schedule.findByPk(scheduleId).then(s => {
+                return s.destroy();
+            });
+        })
+        .then(() => {
+            // 全ての予定情報を削除し、その結果の配列を取得
+            if (err) return done(err);
+            done();
         });
-    });
 }
