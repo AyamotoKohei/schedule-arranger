@@ -74,6 +74,7 @@ var loginRouter = require('./routes/login');
 var logoutRouter = require('./routes/logout');
 var schedulesRouter = require('./routes/schedules');
 var availabilitiesRouter = require('./routes/availabilities');
+var commentsRouter = require('./routes/comments');
 
 var app = express();
 app.use(helmet());
@@ -102,6 +103,7 @@ app.use('/login', loginRouter);
 app.use('/logout', logoutRouter);
 app.use('/schedules', schedulesRouter);
 app.use('/schedules', availabilitiesRouter);
+app.use('/schedules', commentsRouter);
 
 // パスに対するHTTPリクエストのハンドラの登録
 app.get('/auth/github',

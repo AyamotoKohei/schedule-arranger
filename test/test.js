@@ -9,6 +9,7 @@ const User = require('../models/user');
 const Schedule = require('../models/schedule');
 const Candidate = require('../models/candidate');
 const Availability = require('../models/availability');
+const Comment = require('../models/comment');
 
 // 以下の内容のテストを行う
 // ・レスポンスヘッダの 'Content-Type' が text/html; charset=utf-8 であること
@@ -150,6 +151,53 @@ describe('/schedules/:scheduleId/users/:userId/candidates/:candidateId', () => {
     });
 });
 
+// コメントをWebAPIを利用して予定のコメントを更新し、更新したコメントを取得できることと、
+// データベースに実際に保存されていることをテストする
+describe('/schedules/:scheduleId/users/:userId/comments', () => {
+    // describe 内のテスト前に実行される関数
+    beforeAll(() => {
+        passportStub.install(app);
+        passportStub.login({ id: 0, username: 'testuser' });
+    });
+
+    // describe 内のテスト後に実行される関数
+    afterAll(() => {
+        passportStub.logout();
+        passportStub.uninstall(app);
+    });
+
+    test('コメントが更新できる', (done) => {
+        User.upsert({ userId: 0, username: 'testuser' }).then(() => {
+            request(app)
+                .post('/schedules')
+                .send({
+                    scheduleName: 'テストコメント更新予定',
+                    memo: 'テストコメント更新メモ1',
+                    candidates: 'テストコメント更新候補1'
+                })
+                .end((err, res) => {
+                    const createdSchedulePath = res.headers.location;
+                    const scheduleId = createdSchedulePath.split('/schedules/')[1];
+                    // 更新がされることをテスト
+                    const userId = 0;
+                    request(app)
+                        .post(`/schedules/${scheduleId}/users/${userId}/comments`)
+                        .send({ comment: 'testcomment' })
+                        .expect('{"status":"OK","comment":"testcomment"}')
+                        .end((err, res) => {
+                            Comment.findAll({
+                                where: { scheduleId: scheduleId }
+                            }).then((comments) => {
+                                assert.strictEqual(comments.length, 1);
+                                assert.strictEqual(comments[0].comment, 'testcomment');
+                                deleteScheduleAggregate(scheduleId, done, err);
+                            });
+                        });
+                });
+        });
+    });
+});
+
 /**
  * 予定、そこに紐づく出欠・候補を削除する関数
  * @param {Number} scheduleId スケジュールID
@@ -157,6 +205,11 @@ describe('/schedules/:scheduleId/users/:userId/candidates/:candidateId', () => {
  * @param {Object} err エラー
  */
 function deleteScheduleAggregate(scheduleId, done, err) {
+    // 予定に関連するコメントの削除処理
+    const promiseCommentDestroy = Comment.findAll({
+        where: { scheduleId: scheduleId }
+    }).then((comments) => { comments.map((c) => { return c.destroy(); }); });
+
     Availability.findAll({
         // 全ての出欠情報を取得
         where: { scheduleId: scheduleId }
