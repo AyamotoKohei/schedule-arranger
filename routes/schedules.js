@@ -151,4 +151,44 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
         });
 });
 
+router.get('/:scheduleId/edit', authenticationEnsurer, (req, res, next) => {
+    // 指定された予定IDの予定を取得
+    Schedule.findOne({
+        where: {
+            scheduleId: req.params.scheduleId
+        }
+    }).then((schedule) => {
+        // 自身の予定であるかどうかを判定
+        if (isMine(req, schedule)) { // 作成者のみが編集フォームを開ける
+            // 候補を取得し、テンプレートを描画
+            Candidate.findAll({
+                where: { scheduleId: schedule.scheduleId },
+                order: [['candidateId', 'ASC']] // 予定IDの昇順で並び替え
+            }).then((candidates) => {
+                res.render('edit', {
+                    user: req.user,
+                    schedule: schedule,
+                    candidates: candidates
+                });
+            });
+        } else {
+            // 予定が自身で作ったものでなかったり、存在しなかったとき
+            const err = new Error('指定された予定がない、または、予定する権限がありません');
+            err.status = 404;
+            next(err);
+        }
+    });
+});
+
+/**
+ * リクエストと予定のオブジェクトを受け取り、
+ * その予定が自分のものであるかどうかの真偽値を返す関数
+ * @param {Object} req リクエスト
+ * @param {Object} schedule 予定
+ * @returns 真偽値
+ */
+function isMine(req, schedule) {
+    return schedule && parseInt(schedule.createdBy) === parseInt(req.user.id)
+}
+
 module.exports = router;
