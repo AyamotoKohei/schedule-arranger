@@ -198,6 +198,55 @@ describe('/schedules/:scheduleId/users/:userId/comments', () => {
     });
 });
 
+// 予定が編集できることのテストを行う
+describe('/schedules/:scheduleId?edit=1', () => {
+    beforeAll(() => {
+        passportStub.install(app);
+        passportStub.login({ id: 0, username: 'testuser' });
+    });
+
+    afterAll(() => {
+        passportStub.logout();
+        passportStub.uninstall(app);
+    });
+
+    test('予定が更新でき、候補が追加できる', (done) => {
+        // テストを行う為の予定の作成
+        User.upsert({ userId: 0, username: 'testuser' }).then(() => {
+            request(app)
+                .post('/schedules')
+                .send({ scheduleName: 'テスト更新予定1', memo: 'テスト更新メモ1', candidates: 'テスト更新候補1' })
+                .end((err, res) => {
+                    const createdSchedulePath = res.headers.location;
+                    const scheduleId = createdSchedulePath.split('/schedules/')[1];
+                    // 更新がされることをテスト
+                    request(app)
+                        // 更新処理
+                        .post(`/schedules/${scheduleId}?edit=1`)
+                        .send({ scheduleName: 'テスト更新予定2', memo: 'テスト更新メモ2', candidates: 'テスト更新候補2' })
+                        .end((err, res) => {
+                            // 予定が更新されたかをテスト
+                            Schedule.findByPk(scheduleId).then((s) => {
+                                assert.strictEqual(s.scheduleName, 'テスト更新予定2');
+                                assert.strictEqual(s.memo, 'テスト更新メモ2');
+                            });
+                            // 候補が追加されたかをテスト
+                            Candidate.findAll({
+                                where: { scheduleId: scheduleId },
+                                order: [['candidateId', 'ASC']]
+                            }).then((candidates) => {
+                                assert.strictEqual(candidates.length, 2);
+                                assert.strictEqual(candidates[0].candidateName, 'テスト更新候補1');
+                                assert.strictEqual(candidates[1].candidateName, 'テスト更新候補2');
+                                // テストで作成された情報を削除
+                                deleteScheduleAggregate(scheduleId, done, err);
+                            });
+                        });
+                });
+        });
+    });
+});
+
 /**
  * 予定、そこに紐づく出欠・候補を削除する関数
  * @param {Number} scheduleId スケジュールID
