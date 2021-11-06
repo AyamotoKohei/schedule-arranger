@@ -1,6 +1,11 @@
 'use strict';
 import $ from 'jquery';
 
+// 実行環境のグローバルオブジェクトを参照するための変数
+globalThis.jQuery = $;
+
+import bootstrap from 'bootstrap';
+
 /**
  * 全ての出欠ボタンに対して、クリックすることで出欠状態の更新がWebAPIを通じて実行される
  */
