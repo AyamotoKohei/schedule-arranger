@@ -206,6 +206,11 @@ router.post('/:scheduleId', authenticationEnsurer, (req, res, next) => {
                         res.redirect('/schedules/' + schedule.scheduleId);
                     }
                 });
+            } else if (parseInt(req.query.delete) === 1) {
+                deleteScheduleAggregate(req.params.scheduleId, () => {
+                    // 削除処理実行後、'/'にリダイレクト
+                    res.redirect('/');
+                });
             } else { // edit=1 以外のクエリが渡された際
                 const err = new Error('不正なリクエストです');
                 err.status = 400;
@@ -218,6 +223,61 @@ router.post('/:scheduleId', authenticationEnsurer, (req, res, next) => {
         }
     })
 });
+
+/**
+ * 予定、そこに紐づく出欠・候補を削除する関数
+ * @param {Number} scheduleId スケジュールID
+ * @param {Object} done done
+ * @param {Object} err エラー
+ */
+ function deleteScheduleAggregate(scheduleId, done, err) {
+    // 予定に関連するコメントの削除処理
+    const promiseCommentDestroy = Comment.findAll({
+        where: { scheduleId: scheduleId }
+    }).then(comments => {
+        return Promise.all(comments.map(c => { return c.destroy(); }));
+    });
+
+    Availability.findAll({
+        // 全ての出欠情報を取得
+        where: { scheduleId: scheduleId }
+    })
+        .then((availabilities) => {
+            // 全ての出欠情報を削除し、その結果の配列を取得
+            const promises = availabilities.map(a => {
+                return a.destroy();
+            });
+            return Promise.all(promises);
+        })
+        .then(() => {
+            return Candidate.findAll({
+                // 全ての候補情報を取得
+                where: { scheduleId: scheduleId }
+            });
+        })
+        .then(candidates => {
+            // 全ての候補情報を削除し、その結果の配列を取得
+            const promises = candidates.map(c => {
+                return c.destroy();
+            });
+            promises.push(promiseCommentDestroy);
+            return Promise.all(promises);
+        })
+        .then(() => {
+            // 全ての予定情報を取得
+            return Schedule.findByPk(scheduleId).then(s => {
+                return s.destroy();
+            });
+        })
+        .then(() => {
+            // 全ての予定情報を削除し、その結果の配列を取得
+            if (err) return done(err);
+            done();
+        });
+}
+
+// 公開関数として設定
+router.deleteScheduleAggregate = deleteScheduleAggregate;
 
 /**
  * 候補の作成とリダイレクトを行う関数
