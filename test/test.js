@@ -35,7 +35,7 @@ describe('/login', () => {
         return request(app)
             .get('/login') // /login への GET リクエストを作成
             .expect('Content-Type', 'text/html; charset=utf-8') // 文字列を引数として渡し、ヘッダにその値があるかテストする
-            .expect(/<a href="\/auth\/github"/) // HTML の body 内に記述した正規表現が含まれるかテストする
+            .expect(/<a class="btn btn-info my-3" href="\/auth\/github"/) // HTML の body 内に記述した正規表現が含まれるかテストする
             .expect(200); // テストを終了する際、期待されるステータスコードの整数を渡す
     });
 
