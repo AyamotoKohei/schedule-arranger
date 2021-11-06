@@ -1,5 +1,5 @@
 # schedule-arranger
-N予備校の【2021年度】プログラミング入門の4章で開発したWebサイト、秘密の掲示板です。
+N予備校の「【2021年度】プログラミング入門」の4章で開発したWebサイトの『予定調整くん』です。
 
 ## URL
 https://agile-brook-47504.herokuapp.com/
