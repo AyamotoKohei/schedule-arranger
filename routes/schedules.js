@@ -27,22 +27,7 @@ router.post('/', authenticationEnsurer, (req, res, next) => {
         createdBy: req.user.id,
         updatedAt: updatedAt
     }).then((schedule) => { // 予定を保存し終わったら実行される関数
-        // 候補日程の配列を取得
-        const candidateNames = req.body.candidates.trim().split('\n').map((s) => s.trim()).filter((s) => s !== "");
-
-        // 保存すべき候補のオブジェクトの作成
-        const candidates = candidateNames.map((c) => {
-            return {
-                candidateName: c,
-                scheduleId: schedule.scheduleId
-            };
-        });
-
-        // sequelize の複数のオブジェクトを保存する関数を利用して保存する
-        Candidate.bulkCreate(candidates).then(() => {
-            // /schedules/:scheduleId にリダイレクトされる処理
-            res.redirect('/schedules/' + schedule.scheduleId);
-        });
+        createCandidatesAndRedirect(parseCandidateNames(req), scheduleId, res);
     });
 });
 
@@ -189,6 +174,79 @@ router.get('/:scheduleId/edit', authenticationEnsurer, (req, res, next) => {
  */
 function isMine(req, schedule) {
     return schedule && parseInt(schedule.createdBy) === parseInt(req.user.id)
+}
+
+router.post('/:scheduleId', authenticationEnsurer, (req, res, next) => {
+    // 予定IDで予定を取得
+    Schedule.findOne({
+        where: {
+            scheduleId: req.params.scheduleId
+        }
+    }).then((schedule) => {
+        // リクエストの送信者が作成者であるかどうかを確認
+        if (schedule && isMine(req, schedule)) {
+            // edit=1 のクエリがある時のみ更新を行う
+            if (parseInt(req.query.edit) === 1) {
+                const updatedAt = new Date();
+                // 更新処理
+                schedule.update({
+                    scheduleId: schedule.scheduleId,
+                    scheduleName: req.body.scheduleName.slice(0, 255) || '（名称未設定）',
+                    memo: req.body.memo,
+                    createdBy: req.user.id,
+                    updatedAt: updatedAt
+                }).then((schedule) => {
+                    // 追加されているかチェック
+                    const candidateNames = parseCandidateNames(req);
+                    if (candidateNames) {
+                        // 候補を追加してリダイレクト
+                        createCandidatesAndRedirect(candidateNames, schedule.scheduleId, res);
+                    } else {
+                        // 何もせずリダイレクト
+                        res.redirect('/schedules/' + schedule.scheduleId);
+                    }
+                });
+            } else { // edit=1 以外のクエリが渡された際
+                const err = new Error('不正なリクエストです');
+                err.status = 400;
+                next(err);
+            }
+        } else { // 予定が見つからない場合や自分自身の予定ではない場合の処理
+            const err = new Error('指定された予定がない、または、編集する権限がありません');
+            err.status = 404;
+            next(err);
+        }
+    })
+});
+
+/**
+ * 候補の作成とリダイレクトを行う関数
+ * @param {Object} candidateNames 候補日程の配列
+ * @param {Object} scheduleId 予定ID
+ * @param {Object} res レスポンス
+ */
+function createCandidatesAndRedirect(candidateNames, scheduleId, res) {
+    // 保存すべき候補のオブジェクトの作成
+    const candidates = candidateNames.map((c) => {
+        return {
+            candidateName: c,
+            scheduleId: scheduleId
+        };
+    });
+    // sequelize の複数のオブジェクトを保存する関数を利用して保存する
+    Candidate.bulkCreate(candidates).then(() => {
+        // /schedules/:scheduleId にリダイレクトされる処理
+        res.redirect('/schedules/' + scheduleId);
+    });
+}
+
+/**
+ * 予定名の配列をパースする処理を行う関数
+ * @param {Object} req リクエスト
+ * @returns 予定名の配列
+ */
+function parseCandidateNames(req) {
+    return req.body.candidates.trim().split('\n').map((s) => s.trim()).filter((s) => s !== "");
 }
 
 module.exports = router;
