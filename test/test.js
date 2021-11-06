@@ -10,6 +10,7 @@ const Schedule = require('../models/schedule');
 const Candidate = require('../models/candidate');
 const Availability = require('../models/availability');
 const Comment = require('../models/comment');
+const deleteScheduleAggregate = require('../routes/schedules').deleteScheduleAggregate;
 
 // 以下の内容のテストを行う
 // ・レスポンスヘッダの 'Content-Type' が text/html; charset=utf-8 であること
@@ -246,57 +247,3 @@ describe('/schedules/:scheduleId?edit=1', () => {
         });
     });
 });
-
-/**
- * 予定、そこに紐づく出欠・候補を削除する関数
- * @param {Number} scheduleId スケジュールID
- * @param {Object} done done
- * @param {Object} err エラー
- */
-function deleteScheduleAggregate(scheduleId, done, err) {
-    // 予定に関連するコメントの削除処理
-    const promiseCommentDestroy = Comment.findAll({
-        where: { scheduleId: scheduleId }
-    }).then(comments => {
-        return Promise.all(
-            comments.map(c => { return c.destroy(); })
-        );
-    });
-
-    Availability.findAll({
-        // 全ての出欠情報を取得
-        where: { scheduleId: scheduleId }
-    })
-        .then((availabilities) => {
-            // 全ての出欠情報を削除し、その結果の配列を取得
-            const promises = availabilities.map(a => {
-                return a.destroy();
-            });
-            return Promise.all(promises);
-        })
-        .then(() => {
-            return Candidate.findAll({
-                // 全ての候補情報を取得
-                where: { scheduleId: scheduleId }
-            });
-        })
-        .then(candidates => {
-            // 全ての候補情報を削除し、その結果の配列を取得
-            const promises = candidates.map(c => {
-                return c.destroy();
-            });
-            promises.push(promiseCommentDestroy);
-            return Promise.all(promises);
-        })
-        .then(() => {
-            // 全ての予定情報を取得
-            return Schedule.findByPk(scheduleId).then(s => {
-                return s.destroy();
-            });
-        })
-        .then(() => {
-            // 全ての予定情報を削除し、その結果の配列を取得
-            if (err) return done(err);
-            done();
-        });
-}
