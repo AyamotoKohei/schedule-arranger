@@ -34,7 +34,7 @@ $ yarn -v
 $ pwd
 /Users/AyamotoKohei/schedule-arranger
 
-$ docker-compose down
+$ docker-compose up -d
 
 $ docker-compose exec app bash
 
